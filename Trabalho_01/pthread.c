@@ -1,71 +1,44 @@
+/**
+	*	author: beyondmagic
+**/
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <iso646.h>
+#include <signal.h>
 #include <pthread.h>
-#include <stdio.h>
 
-int count = 0; // Contador global
-pthread_mutex_t mut; // Mutex para proteger o contador
+#define mod %
+#define bits_and &
+#define bits_or |
+#define bits_not ~
+#define bits_xor ^
+#define bits_shift_right >>
+#define bits_shift_left <<
 
-// Estrutura para passar o número de vezes que cada thread deve trabalhar
+int count = 0;
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+
 struct thread_arg {
-    int vezes;
+	int vezes;
 };
 
-// Função work, a ser implementada pelo usuário
-int work(int id) {
-    // Simula um trabalho que leva tempo, por exemplo, um sleep
-    printf("Trabalhando no id %d\n", id);
-    return 0;
-}
+void work(int);
 
-// Função que será executada pelas threads
-void *thread_func(void *arg) {
-    struct thread_arg *targ = (struct thread_arg *)arg;
-    
-    for (int i = 0; i < targ->vezes; i++) {
-        // Incrementa o contador, protegendo com o mutex
-        pthread_mutex_lock(&mut);
-        int id = count;
-        count++;
-        pthread_mutex_unlock(&mut);
-        
-        // Chama a função work com o id gerado
-        work(id);
-    }
-    
-    return NULL;
-}
+void *thread_func(void *arg)
+{
+	// cast arg to thread_arg
+	struct thread_arg *ta = arg;
 
-// Função que paraleliza o trabalho
-void do_all_work(int n) {
-    // Inicializa o mutex
-    pthread_mutex_init(&mut, NULL);
-    
-    // Número de threads a serem criadas
-    int num_threads = 4; // Por exemplo, 4 threads
-    pthread_t threads[num_threads];
-    struct thread_arg args[num_threads];
-    
-    // Divide o trabalho entre as threads
-    for (int i = 0; i < num_threads; i++) {
-        args[i].vezes = n / num_threads; // Divide o trabalho igualmente
-        if (i < n % num_threads) {
-            args[i].vezes++; // Distribui o restante
-        }
-        
-        // Cria a thread
-        pthread_create(&threads[i], NULL, thread_func, (void *)&args[i]);
-    }
-    
-    // Espera todas as threads terminarem
-    for (int i = 0; i < num_threads; i++) {
-        pthread_join(threads[i], NULL);
-    }
-    
-    // Destroi o mutex
-    pthread_mutex_destroy(&mut);
-}
+	for (int i = 0; i < ta->vezes; ++i)
+	{
+		pthread_mutex_lock(&mut);
+		int id = ++count;
+		pthread_mutex_unlock(&mut);
+		work(id);
+	}
 
-int main() {
-    // Teste da função
-    do_all_work(10); // Vamos chamar do_all_work com 10 trabalhos
-    return 0;
+	pthread_exit(0);
 }
